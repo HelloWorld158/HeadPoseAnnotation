@@ -227,6 +227,7 @@ class MyApp(ShowBase):
         global files
         if(self.curidx!=self.idx):
             self.img=cv2.imread(files[self.idx])
+            print(files[self.idx])
             self.img=basPic.GenerateExpandImageData(self.img,400,400)
             self.debugimg=self.img.copy()
             self.curidx=self.idx
