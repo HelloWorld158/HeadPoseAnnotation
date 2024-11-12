@@ -227,7 +227,7 @@ class MyApp(ShowBase):
         global files
         if(self.curidx!=self.idx):
             self.img=cv2.imread(files[self.idx])
-            print(files[self.idx],f'{self.idx+1}/len(files)')
+            print(files[self.idx],f'{self.idx+1}/{len(files)}')
             self.img=basPic.GenerateExpandImageData(self.img,400,400)
             self.debugimg=self.img.copy()
             self.curidx=self.idx
