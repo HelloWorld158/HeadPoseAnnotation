@@ -146,6 +146,7 @@ class MyApp(ShowBase):
         self.accept('mouse1-up', self.on_mouse_up)
         self.accept('mouse3', self.on_mouse2_down)
         self.accept('mouse3-up', self.on_mouse2_up)
+        self.accept("delete",self.on_delete)
         self.mat=np.eye(4,dtype=np.float32)
         self.orimat=self.mat
         self.orimat[:3,:3]=get_R(0,math.pi,math.pi)
@@ -154,7 +155,11 @@ class MyApp(ShowBase):
         self.sampleframe=1
         self.infercnt=0
         self.drag_start_pos=None
+        self.delete=False
         self.Create3DGui()
+    def on_delete(self):
+        self.delete=not self.delete
+        self.on_mouse_up()
     def Create3DGui(self):
         # 创建圆形几何形状
         num_segments = 128  # 圆形的细分段数
@@ -208,10 +213,15 @@ class MyApp(ShowBase):
         pklfile=os.path.join(d,name+".pkl")
         out=compute_euler_angles_from_rotation_matricesnpy(self.mat[None,...])[0]
         pitch,yaw,roll=out.tolist()
-        dio.SaveVariableToPKL(pklfile,[[],out.tolist()])
         dct={}
-        dct['euler_angle']=[pitch,yaw,roll]
-        dct['mat']=self.mat.tolist()
+        if(self.delete):
+            dio.SaveVariableToPKL(pklfile,[[],[]])
+            dct['euler_angle']=[]
+            dct['mat']=[]  
+        else:
+            dio.SaveVariableToPKL(pklfile,[[],out.tolist()])
+            dct['euler_angle']=[pitch,yaw,roll]
+            dct['mat']=self.mat.tolist()                  
         jsonfile=os.path.join(d,name+".json")
         dio.writejsondictFormatFile(dct,jsonfile)
         return
@@ -231,14 +241,17 @@ class MyApp(ShowBase):
             self.img=basPic.GenerateExpandImageData(self.img,400,400)
             self.debugimg=self.img.copy()
             self.curidx=self.idx
+            self.delete=False
             self.mat=np.eye(4,dtype=np.float32)
             d,name,ftr=basFunc.GetfileDirNamefilter(files[self.idx])
             pklfile=os.path.join(d,name+".pkl")
             if(os.path.exists(pklfile)):
                 [outbox,outrot]=dio.LoadVariablefromPKL(pklfile)
-                draw_axis(self.debugimg,outrot[1]*180/np.pi,outrot[0]*180/np.pi,outrot[2]*180/np.pi)
-                rotmat=get_R(*outrot)
-                self.mat[:3,:3]=rotmat
+                if(len(outrot)==0):
+                    self.delete=True
+                else:
+                    rotmat=get_R(*outrot)
+                    self.mat[:3,:3]=rotmat
         if self.mouseWatcherNode.hasMouse() and self.is_dragging:
             mouse_pos = self.mouseWatcherNode.getMouse()
             posmouse=[mouse_pos[0],mouse_pos[1]]
@@ -271,7 +284,10 @@ class MyApp(ShowBase):
         out=compute_euler_angles_from_rotation_matricesnpy(self.mat[None,...])[0]
         pitch,yaw,roll=out.tolist()
         self.debugimg=self.img.copy()
-        draw_axis(self.debugimg,yaw*180/np.pi,pitch*180/np.pi,roll*180/np.pi)    
+        if(self.delete):
+            self.debugimg[199:201,:]=np.array([0,0,255],np.uint8)
+        else:
+            draw_axis(self.debugimg,yaw*180/np.pi,pitch*180/np.pi,roll*180/np.pi)    
         return task.cont  
     def capture_frame(self, task):
         # 捕获渲染结果
